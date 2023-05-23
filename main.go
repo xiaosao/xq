@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 
 	"github.com/xiaosao/xq.git/src/scanner"
@@ -10,24 +11,27 @@ import (
 func main() {
 	args := os.Args
 	argsLen := len(args)
+	xq := Xq{}
 	if argsLen > 2 {
 		println("Usage: xq [script]")
 	} else if argsLen == 2 {
-		runFile(args[1])
+		xq.runFile(args[1])
 	} else {
-		runPrompt()
+		xq.runPrompt()
 	}
 }
 
-func runFile(scriptPath string) {
+type Xq struct{}
+
+func (xq *Xq) runFile(scriptPath string) {
 	content, err := os.ReadFile(scriptPath)
 	if err != nil {
 		println("Read file wrong", err)
 	}
-	run(string(content))
+	xq.run(string(content))
 }
 
-func runPrompt() {
+func (xq *Xq) runPrompt() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
 		println("> ")
@@ -36,12 +40,12 @@ func runPrompt() {
 		if line == "" {
 			break
 		}
-		run(line)
+		xq.run(line)
 
 	}
 }
 
-func run(source string) {
+func (xq *Xq) run(source string) {
 	scanner := scanner.Scanner{
 		Source: source,
 	}
@@ -49,4 +53,12 @@ func run(source string) {
 	for token := range tokens {
 		println(token)
 	}
+}
+
+func (xq *Xq) error(line int, message string) {
+	xq.report(line, "", message)
+}
+
+func (xq *Xq) report(line int, where, message string) {
+	fmt.Printf("[line %d] Error %s : %s\n", line, where, message)
 }
