@@ -30,7 +30,7 @@ func (xq *Xq) RunFile(scriptPath string) {
 func (xq *Xq) RunPrompt() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
-		println("> ")
+		fmt.Printf("> ")
 		scanner.Scan()
 		line := scanner.Text()
 		if line == "" {
@@ -47,7 +47,7 @@ func (xq *Xq) Run(source string) {
 	}
 	tokens := scanner.ScanTokens()
 	for _, token := range tokens {
-		println(token.Lexeme)
+		println(token.ToString())
 	}
 }
 

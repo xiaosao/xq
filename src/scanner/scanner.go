@@ -2,6 +2,7 @@ package scanner
 
 import (
 	"fmt"
+	"strconv"
 )
 
 type TokenType int
@@ -55,6 +56,75 @@ const (
 
 	EOF
 )
+
+// just for print format
+var tokenType2Label = map[TokenType]string{
+	LEFT_PAREN:  "LEFT_PAREN",
+	RIGHT_PAREN: "RIGHT_PAREN",
+	LEFT_BRACE:  "LEFT_BRACE",
+	RIGHT_BRACE: "RIGHT_BRACE",
+	COMMA:       "COMMA",
+	DOT:         "DOT",
+	MINUS:       "MINUS",
+	PLUS:        "PLUS",
+	SEMICOLON:   "SEMICOLON",
+	SLASH:       "SLASH",
+	STAR:        "STAR",
+
+	// One or two character tokens.
+	BANG:          "BANG",
+	BANGEQUAL:     "BANGEQUAL",
+	EQUAL:         "EQUAL",
+	EQUAL_EQUAL:   "EQUAL_EQUAL",
+	GREATER:       "GREATER",
+	GREATER_EQUAL: "GREATER_EQUAL",
+	LESS:          "LESS",
+	LESS_EQUAL:    "LESS_EQUAL",
+
+	// Literals.
+	IDENTIFIER: "IDENTIFIER",
+	STRING:     "STRING",
+	NUMBER:     "NUMBER",
+
+	// Keywords.
+	AND:    "AND",
+	CLASS:  "CLASS",
+	ELSE:   "ELSE",
+	FUN:    "FUN",
+	FOR:    "FOR",
+	IF:     "IF",
+	WHILE:  "WHILE",
+	NIL:    "NIL",
+	OR:     "OR",
+	PRINT:  "PRINT",
+	RETURN: "RETURN",
+	SUPER:  "SUPER",
+	THIS:   "THIS",
+	TRUE:   "TRUE",
+	FALSE:  "FALSE",
+	VAR:    "VAR",
+
+	EOF: "EOF",
+}
+
+var Keywords = map[string]TokenType{
+	"and":    AND,
+	"class":  CLASS,
+	"else":   ELSE,
+	"false":  FALSE,
+	"for":    FOR,
+	"fun":    FUN,
+	"if":     IF,
+	"nil":    NIL,
+	"or":     OR,
+	"print":  PRINT,
+	"return": RETURN,
+	"spuer":  SUPER,
+	"this":   THIS,
+	"true":   TRUE,
+	"var":    VAR,
+	"while":  WHILE,
+}
 
 type ErrorReporter interface {
 	error(line int, message string)
@@ -146,12 +216,19 @@ func (sc *Scanner) scanToken() {
 	case '\n':
 		sc.line++
 	case '"':
-
+		sc.xString()
 	default:
-		sc.errorReporter.error(sc.line, "Unexpected character.")
+		if isDigit(c) {
+			sc.xNumber()
+		} else if isAlpha(c) {
+			sc.xIdentifier()
+		} else {
+			sc.errorReporter.error(sc.line, "Unexpected character.")
+		}
 	}
 }
 
+// just forward 1
 func (sc *Scanner) advance() rune {
 	str := []rune(sc.Source)
 	c := str[sc.current]
@@ -159,6 +236,7 @@ func (sc *Scanner) advance() rune {
 	return c
 }
 
+// match and forward 1
 func (sc *Scanner) match(expected rune) bool {
 	if sc.isAtEnd() {
 		return false
@@ -171,11 +249,21 @@ func (sc *Scanner) match(expected rune) bool {
 	return true
 }
 
+// return current + 1
 func (sc *Scanner) peek() rune {
 	if sc.isAtEnd() {
 		return '\x00'
 	}
 	return []rune(sc.Source)[sc.current]
+}
+
+// return current + 2
+func (sc *Scanner) peekNext() rune {
+	next := sc.current + 1
+	if next >= len(sc.Source) {
+		return '\x00'
+	}
+	return []rune(sc.Source)[next]
 }
 
 func (sc *Scanner) xString() {
@@ -191,14 +279,46 @@ func (sc *Scanner) xString() {
 	sc.advance()
 
 	val := sc.Source[sc.start+1 : sc.current-1]
-	sc.innerAddToken(STRING, val)
+	sc.addToken1(STRING, val)
+}
+
+func (sc *Scanner) xNumber() {
+	for isDigit(sc.peek()) {
+		sc.advance()
+	}
+	if sc.peek() == '.' && isDigit(sc.peekNext()) {
+		sc.advance()
+		for isDigit(sc.peek()) {
+			sc.advance()
+		}
+	}
+	val, err := strconv.ParseFloat(sc.Source[sc.start:sc.current], 64)
+	if err != nil {
+		sc.errorReporter.error(sc.line, "Unexpected number format.")
+	}
+	sc.addToken1(NUMBER, val)
+}
+
+func (sc *Scanner) xIdentifier() {
+	for isAlphaNumberic(sc.peek()) {
+		sc.advance()
+	}
+	text := sc.Source[sc.start:sc.current]
+	xType, exist := Keywords[text]
+	if exist {
+		sc.addToken(xType)
+	} else {
+
+		sc.addToken(IDENTIFIER)
+	}
+
 }
 
 func (sc *Scanner) addToken(xtype TokenType) {
-	sc.innerAddToken(xtype, nil)
+	sc.addToken1(xtype, nil)
 }
 
-func (sc *Scanner) innerAddToken(xtype TokenType, literal interface{}) {
+func (sc *Scanner) addToken1(xtype TokenType, literal interface{}) {
 	text := sc.Source[sc.start:sc.current]
 	sc.Tokens = append(sc.Tokens, Token{
 		Type:    xtype,
@@ -224,6 +344,6 @@ type Token struct {
 	Line    int
 }
 
-func (t *Token) toString() string {
-	return fmt.Sprintf("%q %q %q", t.Type, t.Lexeme, t.Literal)
+func (t *Token) ToString() string {
+	return fmt.Sprintf("%s  %q  %q", tokenType2Label[t.Type], t.Lexeme, t.Literal)
 }
