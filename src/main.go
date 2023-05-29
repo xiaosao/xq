@@ -31,10 +31,10 @@ func generateAst() {
 	outputDir := args[1]
 	// fmt.Println(outputDir)
 	defineAst(outputDir, "Expr", []string{
-		"Binary: left Expr, operator sc.Token, right Expr",
-		"Grouping: expression Expr",
-		"Literal: value sc.Object",
-		"Unary: operator sc.Token, right Expr",
+		"Binary: Left Expr, Operator sc.Token, Right Expr",
+		"Grouping: Expression Expr",
+		"Literal: Value sc.Object",
+		"Unary: Operator sc.Token, Right Expr",
 	})
 }
 
@@ -66,6 +66,7 @@ type %s struct {
 		fields := segments[1]
 		defineStructType(file, baseName, className, fields)
 	}
+	defineVisitor(file, baseName, types)
 
 }
 
@@ -81,8 +82,21 @@ type %s struct {
 	%s
 	%s
 }
-	`, className, baseName, fieldResultStr)
+func (t *%s)accept(visitor Visitor) {
+	visitor.visit%s(t)
+}
+	`, className, baseName, fieldResultStr, className, className)
 	f.Write([]byte(structTmp))
+}
+
+func defineVisitor(f *os.File, baseName string, types []string) {
+	f.Write([]byte("type Visitor interface {"))
+	for _, t := range types {
+		typeName := strings.Split(t, ":")[0]
+		m := fmt.Sprintf("visit%s%s (%s %s)\n", typeName, baseName, baseName, typeName)
+		f.Write([]byte(m))
+	}
+	f.Write([]byte("}"))
 }
 
 /*

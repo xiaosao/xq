@@ -9,23 +9,46 @@ type Expr struct {
 
 type Binary struct {
 	Expr
-	left     Expr
-	operator sc.Token
-	right    Expr
+	Left     Expr
+	Operator sc.Token
+	Right    Expr
+}
+
+func (t *Binary) accept(visitor Visitor) {
+	visitor.visitBinary(t)
 }
 
 type Grouping struct {
 	Expr
-	expression Expr
+	Expression Expr
+}
+
+func (t *Grouping) accept(visitor Visitor) {
+	visitor.visitGrouping(t)
 }
 
 type Literal struct {
 	Expr
-	value sc.Object
+	Value sc.Object
+}
+
+func (t *Literal) accept(visitor Visitor) {
+	visitor.visitLiteral(t)
 }
 
 type Unary struct {
 	Expr
-	operator sc.Token
-	right    Expr
+	Operator sc.Token
+	Right    Expr
+}
+
+func (t *Unary) accept(visitor Visitor) {
+	visitor.visitUnary(t)
+}
+
+type Visitor interface {
+	visitBinaryExpr(Expr Binary)
+	visitGroupingExpr(Expr Grouping)
+	visitLiteralExpr(Expr Literal)
+	visitUnaryExpr(Expr Unary)
 }
