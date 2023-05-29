@@ -340,10 +340,12 @@ func (sc *Scanner) ScanTokens() []Token {
 type Token struct {
 	Type    TokenType
 	Lexeme  string
-	Literal interface{}
+	Literal Object
 	Line    int
 }
 
 func (t *Token) ToString() string {
 	return fmt.Sprintf("%s  %q  %q", tokenType2Label[t.Type], t.Lexeme, t.Literal)
 }
+
+type Object interface{}
